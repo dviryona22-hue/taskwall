@@ -4,7 +4,14 @@
     <title>Task Wall</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 20px; background: white; text-align: center; color: black; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            padding: 20px; 
+            padding-top: 80px; /* This pushes the box down from the very top */
+            background: white; 
+            text-align: center; 
+            color: black; 
+        }
         
         /* The input box */
         #taskInput { 
@@ -13,25 +20,34 @@
         }
 
         /* The Custom Checkbox styling */
-        .checkbox-container { display: flex; align-items: center; justify-content: center; margin-bottom: 15px; cursor: pointer; }
-        #isWeekly { width: 20px; height: 20px; accent-color: black; cursor: pointer; }
+        .checkbox-container { 
+            display: flex; align-items: center; justify-content: center; 
+            margin-bottom: 15px; 
+        }
+        #isWeekly { 
+            width: 24px; height: 24px; accent-color: black; cursor: pointer; 
+            transition: all 0.2s ease;
+        }
 
         /* The Button */
         button { 
             background: black; color: white; width: 90%; max-width: 430px; 
             padding: 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; 
+            transition: opacity 0.2s;
         }
+        button:active { opacity: 0.7; }
 
         /* The "Wall" Line */
-        .wall-line { border: none; border-top: 2px solid black; margin: 30px auto; width: 95%; max-width: 500px; }
+        .wall-line { border: none; border-top: 2px solid black; margin: 40px auto; width: 95%; max-width: 500px; }
 
         /* The Task Cards */
         .task-card { 
             background: #fff; padding: 15px; margin: 10px auto; border-radius: 8px; 
             max-width: 400px; display: flex; justify-content: space-between; 
-            border: 1px solid #eee; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left;
+            border: 1px solid #eee; text-align: left;
+            font-size: 18px;
         }
-        .weekly-icon { font-size: 12px; color: #666; margin-left: 10px; border: 1px solid #666; padding: 2px 4px; border-radius: 4px; }
+        .weekly-label { font-size: 10px; font-weight: bold; color: black; border: 1px solid black; padding: 2px 5px; border-radius: 4px; align-self: center; }
     </style>
 </head>
 <body>
@@ -42,7 +58,7 @@
         <input type="checkbox" id="isWeekly">
     </div>
 
-    <button onclick="addTask()"> </button>
+    <button onclick="addTask()">           </button>
 
     <hr class="wall-line">
 
@@ -50,9 +66,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, push, onValue, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-        // Your Firebase Config (Keep this as is)
         const firebaseConfig = {
             apiKey: "AIzaSyBU-ni2K4wpf1Gm6tU5hu08N_8p7GfmB7k",
             authDomain: "todolistido-1234.firebaseapp.com",
@@ -75,7 +90,7 @@
                     text: text, 
                     status: "pending", 
                     weekly: weekly, 
-                    dayAdded: new Date().getDay(), // Saves the day (0 is Sunday, 1 is Monday, etc.)
+                    dayAdded: new Date().getDay(), 
                     timestamp: Date.now() 
                 });
                 document.getElementById('taskInput').value = '';
@@ -83,7 +98,6 @@
             }
         };
 
-        // UI Listener: Only shows "pending" tasks
         onValue(tasksRef, (snapshot) => {
             const data = snapshot.val();
             const listDiv = document.getElementById('taskList');
@@ -91,14 +105,11 @@
             
             for (let id in data) {
                 const task = data[id];
-                
-                // Weekly Logic: If it's a new week and task was done, we could reset it here.
-                // For now, we follow your rule: only show pending.
                 if(task.status === "pending") {
                     listDiv.innerHTML += `
                         <div class="task-card">
                             <span>${task.text}</span>
-                            ${task.weekly ? '<span class="weekly-icon">W</span>' : ''}
+                            ${task.weekly ? '<span class="weekly-label">WEEKLY</span>' : ''}
                         </div>`;
                 }
             }
