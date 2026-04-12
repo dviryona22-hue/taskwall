@@ -1,69 +1,46 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Task Master</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        body { font-family: sans-serif; padding: 20px; background: #f4f4f4; text-align: center; }
-        input, button { width: 90%; max-width: 400px; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 16px; }
-        button { background: #007bff; color: white; font-weight: bold; cursor: pointer; border: none; }
-        .task-card { background: white; padding: 10px; margin: 10px auto; border-radius: 5px; max-width: 400px; display: flex; justify-content: space-between; border-left: 5px solid #007bff; }
-    </style>
-</head>
-<body>
-    <h2>Add New Task</h2>
-    <input type="text" id="taskInput" placeholder="Enter task name...">
-    <br>
-    <label><input type="checkbox" id="isWeekly"> Weekly Recurring?</label>
-    <br><br>
-    <button onclick="addTask()">Send to Wall</button>
-
-    <div id="taskList"></div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-        // This is where your specific "Address" goes
-        const firebaseConfig = {
-            apiKey: "AIzaSyBU-ni2K4wpf1Gm6tU5hu08N_8p7GfmB7k",
-            authDomain: "todolistido-1234.firebaseapp.com",
-            databaseURL: "https://todolistido-1234-default-rtdb.firebaseio.com",
-            projectId: "todolistido-1234",
-            storageBucket: "todolistido-1234.firebasestorage.app",
-            messagingSenderId: "206480575559",
-            appId: "1:206480575559:web:02be27c9d1f441a1197562"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
-        const tasksRef = ref(db, 'tasks');
-
-        window.addTask = function() {
-            const text = document.getElementById('taskInput').value;
-            const weekly = document.getElementById('isWeekly').checked;
-            if (text) {
-                push(tasksRef, { 
-                    text: text, 
-                    status: "pending", 
-                    weekly: weekly, 
-                    timestamp: Date.now() 
-                });
-                document.getElementById('taskInput').value = '';
-                document.getElementById('isWeekly').checked = false;
-            }
-        };
-
-        onValue(tasksRef, (snapshot) => {
-            const data = snapshot.val();
-            const listDiv = document.getElementById('taskList');
-            listDiv.innerHTML = "<h3>Pending Tasks</h3>";
-            for (let id in data) {
-                if(data[id].status === "pending") {
-                    listDiv.innerHTML += `<div class="task-card"><span>${data[id].text}</span> <span>${data[id].weekly ? '🔄' : ''}</span></div>`;
-                }
-            }
-        });
-    </script>
-</body>
-</html>
+<style>
+    :root {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --accent: #38bdf8;
+        --text: #f8fafc;
+    }
+    body { 
+        font-family: 'Segoe UI', sans-serif; 
+        padding: 20px; 
+        background: var(--bg); 
+        color: var(--text);
+        text-align: center; 
+    }
+    input { 
+        width: 90%; 
+        max-width: 400px; 
+        padding: 15px; 
+        background: var(--card);
+        border: 1px solid #334155;
+        color: white;
+        border-radius: 12px; 
+        font-size: 16px; 
+        margin-bottom: 20px;
+    }
+    button { 
+        background: var(--accent); 
+        color: #0f172a; 
+        padding: 15px 30px;
+        font-weight: bold; 
+        border-radius: 12px;
+        border: none;
+        box-shadow: 0 4px 14px 0 rgba(56, 189, 248, 0.39);
+    }
+    .task-card { 
+        background: var(--card); 
+        padding: 15px; 
+        margin: 12px auto; 
+        border-radius: 12px; 
+        max-width: 400px; 
+        display: flex; 
+        justify-content: space-between; 
+        border-left: 4px solid var(--accent);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+</style>
