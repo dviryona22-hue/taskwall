@@ -51,18 +51,18 @@
             max-width: 400px; display: flex; justify-content: space-between; 
             border: 1px solid #eee; text-align: left;
             font-size: 18px;
-            transition: transform 0.1s, opacity 0.4s, background-color 0.4s;
+            transition: transform 0.15s, opacity 0.4s, background-color 0.4s;
             cursor: pointer;
-            touch-action: manipulation;
+            touch-action: pan-y; /* Allows normal scrolling without interference */
         }
 
-        /* Shrink effect while holding */
-        .task-card:active {
-            transform: scale(0.94);
-            background-color: #ffebee; /* Subtle red tint to hint at deletion */
+        /* This ONLY triggers during the valid second-press hold */
+        .task-card.pressing {
+            transform: scale(0.92);
+            background-color: #ffebee;
+            border-color: #ffcdd2;
         }
 
-        /* Smooth slide-out animation */
         .deleting {
             opacity: 0 !important;
             transform: translateX(-100px) !important;
@@ -107,25 +107,36 @@
         const tasksRef = ref(db, 'tasks');
 
         let pressTimer;
+        let lastTapTime = 0;
 
-        // Start timer on press (2 seconds)
-        window.startPress = function(id) {
-            pressTimer = setTimeout(() => {
-                deleteTask(id);
-            }, 2000); 
+        window.handleStart = function(id) {
+            const currentTime = new Date().getTime();
+            const tapLength = currentTime - lastTapTime;
+
+            // Check if this tap happens quickly after the last one
+            if (tapLength < 400 && tapLength > 0) {
+                const el = document.getElementById(id);
+                
+                // Only now do we apply the visual "pressing" state
+                el.classList.add('pressing');
+
+                pressTimer = setTimeout(() => {
+                    deleteTask(id);
+                }, 1500); 
+            }
+            lastTapTime = currentTime;
         };
 
-        // If you let go before 2 seconds, the timer cancels
-        window.cancelPress = function() {
+        window.handleEnd = function(id) {
             clearTimeout(pressTimer);
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('pressing');
         };
 
         function deleteTask(id) {
             const el = document.getElementById(id);
             if (el) {
                 el.classList.add('deleting');
-                
-                // Wait for the slide-out animation before removing from Firebase
                 setTimeout(() => {
                     const itemRef = ref(db, 'tasks/' + id);
                     remove(itemRef);
@@ -164,13 +175,14 @@
                     card.id = id;
                     card.innerHTML = `<span>${task.text}</span> ${weeklyTag}`;
                     
-                    // Mouse and Touch listeners
-                    card.onmousedown = () => startPress(id);
-                    card.onmouseup = () => cancelPress();
-                    card.onmouseleave = () => cancelPress(); // Safety if mouse moves away
+                    // Mouse Listeners
+                    card.onmousedown = () => handleStart(id);
+                    card.onmouseup = () => handleEnd(id);
+                    card.onmouseleave = () => handleEnd(id);
                     
-                    card.ontouchstart = () => startPress(id);
-                    card.ontouchend = () => cancelPress();
+                    // Touch Listeners
+                    card.ontouchstart = () => handleStart(id);
+                    card.ontouchend = () => handleEnd(id);
                     
                     listDiv.appendChild(card);
                 }
