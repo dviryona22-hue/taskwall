@@ -7,13 +7,15 @@
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
             padding: 20px; 
-            padding-top: 60px; /* Adjusted slightly to fit the title */
+            padding-top: 60px;
             background: white; 
             text-align: center; 
             color: black; 
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
-        /* Styling for your new title */
         h1 {
             font-size: 28px;
             font-weight: 800;
@@ -21,23 +23,20 @@
             letter-spacing: -1px;
         }
         
-        /* The input box */
         #taskInput { 
             width: 90%; max-width: 400px; padding: 15px; border-radius: 8px; 
             border: 1px solid #000; font-size: 16px; margin-bottom: 15px; outline: none;
+            user-select: text;
         }
 
-        /* The Custom Checkbox styling */
         .checkbox-container { 
             display: flex; align-items: center; justify-content: center; 
             margin-bottom: 15px; 
         }
         #isWeekly { 
             width: 24px; height: 24px; accent-color: black; cursor: pointer; 
-            transition: all 0.2s ease;
         }
 
-        /* The Button */
         button { 
             background: black; color: white; width: 90%; max-width: 430px; 
             padding: 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; 
@@ -45,16 +44,31 @@
         }
         button:active { opacity: 0.7; }
 
-        /* The "Wall" Line */
         .wall-line { border: none; border-top: 2px solid black; margin: 40px auto; width: 95%; max-width: 500px; }
 
-        /* The Task Cards */
         .task-card { 
             background: #fff; padding: 15px; margin: 10px auto; border-radius: 8px; 
             max-width: 400px; display: flex; justify-content: space-between; 
             border: 1px solid #eee; text-align: left;
             font-size: 18px;
+            transition: transform 0.1s, opacity 0.4s, background-color 0.4s;
+            cursor: pointer;
+            touch-action: manipulation;
         }
+
+        /* Shrink effect while holding */
+        .task-card:active {
+            transform: scale(0.94);
+            background-color: #ffebee; /* Subtle red tint to hint at deletion */
+        }
+
+        /* Smooth slide-out animation */
+        .deleting {
+            opacity: 0 !important;
+            transform: translateX(-100px) !important;
+            pointer-events: none;
+        }
+
         .weekly-label { font-size: 10px; font-weight: bold; color: black; border: 1px solid black; padding: 2px 5px; border-radius: 4px; align-self: center; }
     </style>
 </head>
@@ -76,7 +90,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBU-ni2K4wpf1Gm6tU5hu08N_8p7GfmB7k",
@@ -91,6 +105,33 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const tasksRef = ref(db, 'tasks');
+
+        let pressTimer;
+
+        // Start timer on press (2 seconds)
+        window.startPress = function(id) {
+            pressTimer = setTimeout(() => {
+                deleteTask(id);
+            }, 2000); 
+        };
+
+        // If you let go before 2 seconds, the timer cancels
+        window.cancelPress = function() {
+            clearTimeout(pressTimer);
+        };
+
+        function deleteTask(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.add('deleting');
+                
+                // Wait for the slide-out animation before removing from Firebase
+                setTimeout(() => {
+                    const itemRef = ref(db, 'tasks/' + id);
+                    remove(itemRef);
+                }, 400);
+            }
+        }
 
         window.addTask = function() {
             const text = document.getElementById('taskInput').value;
@@ -116,11 +157,22 @@
             for (let id in data) {
                 const task = data[id];
                 if(task.status === "pending") {
-                    listDiv.innerHTML += `
-                        <div class="task-card">
-                            <span>${task.text}</span>
-                            ${task.weekly ? '<span class="weekly-label">WEEKLY</span>' : ''}
-                        </div>`;
+                    const weeklyTag = task.weekly ? '<span class="weekly-label">WEEKLY</span>' : '';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'task-card';
+                    card.id = id;
+                    card.innerHTML = `<span>${task.text}</span> ${weeklyTag}`;
+                    
+                    // Mouse and Touch listeners
+                    card.onmousedown = () => startPress(id);
+                    card.onmouseup = () => cancelPress();
+                    card.onmouseleave = () => cancelPress(); // Safety if mouse moves away
+                    
+                    card.ontouchstart = () => startPress(id);
+                    card.ontouchend = () => cancelPress();
+                    
+                    listDiv.appendChild(card);
                 }
             }
         });
