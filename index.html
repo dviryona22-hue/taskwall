@@ -1,200 +1,348 @@
 <!DOCTYPE html>
-<html>
+<html lang="he" dir="rtl">
 <head>
-    <title>Task Wall</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>רשימת הקניות של משפחת שפיגל</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <style>
+        html { scroll-behavior: smooth; }
+
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            padding: 20px; 
-            padding-top: 60px;
-            background: white; 
-            text-align: center; 
-            color: black; 
-            -webkit-touch-callout: none;
+            padding: 20px; padding-top: 50px;
+            background: #fdfdfa; 
+            text-align: center; color: black; 
+            -webkit-tap-highlight-color: transparent;
+            direction: rtl;
+            overflow-x: hidden;
+            user-select: none; 
             -webkit-user-select: none;
-            user-select: none;
+            -webkit-touch-callout: none; 
         }
 
-        h1 {
-            font-size: 34px;
-            font-weight: 800;
-            margin-bottom: 30px;
+        #greeting { 
+            font-size: clamp(24px, 7vw, 34px); 
+            font-weight: 900; 
+            margin-bottom: 30px; 
             letter-spacing: -1px;
-        }
-        
-        #taskInput { 
-            width: 90%; max-width: 400px; padding: 15px; border-radius: 8px; 
-            border: 1px solid #000; font-size: 16px; margin-bottom: 15px; outline: none;
-            user-select: text;
+            white-space: nowrap;
         }
 
-        .checkbox-container { 
-            display: flex; align-items: center; justify-content: center; 
-            margin-bottom: 15px; 
-        }
-        #isWeekly { 
-            width: 24px; height: 24px; accent-color: black; cursor: pointer; 
+        #itemInput { 
+            width: 85%; max-width: 400px; padding: 15px; border-radius: 12px; 
+            border: none; font-size: 18px; margin-bottom: 15px; outline: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            background: white;
+            user-select: text; -webkit-user-select: text;
+            -webkit-touch-callout: default;
         }
 
-        button { 
+        .main-btn { 
             background: black; color: white; width: 90%; max-width: 430px; 
-            padding: 15px; border-radius: 8px; font-weight: bold; border: none; cursor: pointer; 
-            transition: opacity 0.2s;
+            padding: 15px; border-radius: 12px; font-weight: bold; border: none; 
+            cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
         }
-        button:active { opacity: 0.7; }
 
-        .wall-line { border: none; border-top: 2px solid black; margin: 40px auto; width: 95%; max-width: 500px; }
+        .wall-line { border: none; border-top: 1px solid rgba(0,0,0,0.08); margin: 40px auto; width: 95%; max-width: 500px; }
 
-        .task-card { 
-            background: #fff; padding: 15px; margin: 10px auto; border-radius: 8px; 
-            max-width: 400px; display: flex; justify-content: space-between; 
-            border: 1px solid #eee; text-align: left;
-            font-size: 18px;
-            transition: transform 0.15s, opacity 0.4s, background-color 0.4s;
+        #itemList { 
+            display: flex; flex-direction: column; align-items: center; 
+            perspective: 1200px; 
+        }
+
+        .item-container {
+            width: 90%; max-width: 400px;
+            height: 50px; margin: 5px auto;
+            perspective: 1000px;
+            display: block; 
+        }
+
+        .item-card {
+            position: relative; width: 100%; height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
             cursor: pointer;
             touch-action: pan-y;
         }
 
-        .task-card.pressing {
-            transform: scale(0.92);
-            background-color: #ffebee;
-            border-color: #ffcdd2;
+        .item-card.is-flipped { transform: rotateY(180deg); }
+
+        .card-face {
+            position: absolute; width: 100%; height: 100%;
+            backface-visibility: hidden;
+            display: flex; align-items: center; justify-content: flex-start;
+            padding: 0 10px; border-radius: 0;
+            font-size: 24px; font-weight: 800; box-sizing: border-box;
         }
 
-        .deleting {
-            opacity: 0 !important;
-            transform: translateX(-100px) !important;
-            pointer-events: none;
+        .card-front { background: transparent; color: black; border: none; width: 100%; }
+        
+        .card-back { 
+            background: #000; color: #fff; transform: rotateY(180deg); 
+            justify-content: center; font-size: 22px; border-radius: 12px; font-weight: 900;
         }
 
-        .weekly-label { font-size: 10px; font-weight: bold; color: black; border: 1px solid black; padding: 2px 5px; border-radius: 4px; align-self: center; }
+        .completed .card-front { opacity: 0.3; text-decoration: line-through; }
+
+        .spacer { height: 300px; } 
+
+        .footer-area { padding-bottom: 200px; display: flex; justify-content: center; }
+        
+        .reset-btn { 
+            background: black; color: white; border: none; padding: 10px 20px; 
+            border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; 
+        }
+
+        #nameOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fdfdfa; z-index: 1000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
     </style>
 </head>
 <body>
 
-    <h1 id="greeting"></h1>
-
-    <script>
-        function updateGreeting() {
-            const hour = new Date().getHours();
-            let greeting;
-            if (hour >= 5 && hour < 12) greeting = "Good morning, Ido";
-            else if (hour >= 12 && hour < 17) greeting = "Good afternoon, Ido";
-            else if (hour >= 17 && hour < 21) greeting = "Good evening, Ido";
-            else greeting = "Good night, Ido";
-            document.getElementById('greeting').textContent = greeting;
-        }
-        updateGreeting();
-    </script>
-
-    <input type="text" id="taskInput" placeholder="type task here...">
-    
-    <div class="checkbox-container">
-        <input type="checkbox" id="isWeekly">
+    <div id="nameOverlay" style="display:none;">
+        <h2 style="font-weight:900; font-size: 32px;">היי!</h2>
+        <input type="text" id="nameInput" placeholder="מה השם שלך?" 
+               style="width: 75%; padding: 20px; border-radius: 15px; border: 3px solid black; font-size: 20px; margin-bottom: 20px; text-align: center; outline: none;">
+        <button class="main-btn" onclick="saveName()" style="width: 60%;">זה אני</button>
     </div>
 
-    <button onclick="addTask()">Launch</button>
+    <h1 id="greeting"></h1>
+
+    <input type="text" id="itemInput" placeholder="מה חסר?" autocomplete="off">
+    <button class="main-btn" onclick="addItem()">הוסף</button>
 
     <hr class="wall-line">
+    <div id="itemList"></div>
 
-    <div id="taskList"></div>
+    <div class="spacer"></div>
+
+    <div class="footer-area">
+        <button class="reset-btn" onclick="clearList()">רשימה חדשה</button>
+    </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        import { getDatabase, ref, push, onValue, update, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyBU-ni2K4wpf1Gm6tU5hu08N_8p7GfmB7k",
-            authDomain: "todolistido-1234.firebaseapp.com",
-            databaseURL: "https://todolistido-1234-default-rtdb.firebaseio.com",
-            projectId: "todolistido-1234",
-            storageBucket: "todolistido-1234.firebasestorage.app",
-            messagingSenderId: "206480575559",
-            appId: "1:206480575559:web:02be27c9d1f441a1197562"
+            apiKey: "AIzaSyBkgt6UqNO4x9mZcfnX5MuxXaG4Mjwi_4o",
+            authDomain: "grocery-list-d8f4c.firebaseapp.com",
+            databaseURL: "https://grocery-list-d8f4c-default-rtdb.firebaseio.com",
+            projectId: "grocery-list-d8f4c",
+            storageBucket: "grocery-list-d8f4c.firebasestorage.app",
+            messagingSenderId: "501922585923",
+            appId: "1:501922585923:web:195085f683e43f495363f6"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const tasksRef = ref(db, 'tasks');
+        const listRef = ref(db, 'groceries');
 
-        let pressTimer;
-        let lastTapTime = 0;
-
-        window.handleStart = function(id) {
-            const currentTime = new Date().getTime();
-            const tapLength = currentTime - lastTapTime;
-
-            if (tapLength < 400 && tapLength > 0) {
-                const el = document.getElementById(id);
-                el.classList.add('pressing');
-
-                pressTimer = setTimeout(() => {
-                    deleteTask(id);
-                }, 1500); 
+        // ── Category definitions ──────────────────────────────────────────────
+        // Order matters: index 0 = rendered first (top of list)
+        const CATEGORIES = [
+            {
+                id: 'milky',
+                label: '🥛 חלבי',
+                order: 0,
+                keywords: ['חלב','קוטז','קוטג','קוטג\'','\'קוטג','גבינה','מוצרלה','צהובה','גאודה',
+                           'שיבולת שועל','שיבולת','שועל','שמנת','מעדן']
+            },
+            {
+                id: 'meat',
+                label: '🥩 בשרי',
+                order: 1,
+                keywords: ['בקר','בשר','עוף','שניצלים','שניצל','חזה','פרגיות','שיפודים',
+                           'קבבים','סטייק','סטייקים','כנפיים','פסתרמה','נקניק','סלאמי','טחון','קציצות']
+            },
+            {
+                id: 'vegetables',
+                label: '🥦 פירות וירקות',
+                order: 2,
+                keywords: ['מלפפון','מלפפונים','עגבניות','עגבניה','פלפל','פלפלים','בננה','בננות',
+                           'אבוקדו','לימונים','לימון','אגס','אגסים','תפוח','תפוחים','פטרוזיליה',
+                           'שום','פטריות','פיטריות','רוזמרין','ירקות','ענבים','תפוז','תפוזים',
+                           'אבטיח','אבטיחים','גזר','גזרים','בצל','בצלים','דלורית','דלעת',
+                           'ארטישוק','ברוקולי','כרובית','כרוב','חציל','חצילים','חסה','סלרי',
+                           'סלק','רימון','רימונים','אפרסק','נקטרינה','נקטרינות','מלון','שמר',
+                           'תפוח אדמה','בטטות','בטטה','קישו','קישואים','שזיף']
+            },
+            {
+                id: 'bread',
+                label: '🍞 לחם ומאפים',
+                order: 3,
+                keywords: ['פיתות','פיתה','לחם','קמח','מקמח','לחמניות','כוסמין','חלה','חלות','מחמצת']
+            },
+            {
+                id: 'general',
+                label: '🛒 כללי',
+                order: 4,
+                keywords: []   // catch-all
             }
-            lastTapTime = currentTime;
-        };
+        ];
 
-        window.handleEnd = function(id) {
-            clearTimeout(pressTimer);
-            const el = document.getElementById(id);
-            if (el) el.classList.remove('pressing');
-        };
-
-        function deleteTask(id) {
-            const el = document.getElementById(id);
-            if (el) {
-                el.classList.add('deleting');
-                setTimeout(() => {
-                    const itemRef = ref(db, 'tasks/' + id);
-                    remove(itemRef);
-                }, 400);
-            }
-        }
-
-        window.addTask = function() {
-            const text = document.getElementById('taskInput').value;
-            const weekly = document.getElementById('isWeekly').checked;
-            if (text) {
-                push(tasksRef, { 
-                    text: text, 
-                    status: "pending", 
-                    weekly: weekly, 
-                    dayAdded: new Date().getDay(), 
-                    timestamp: Date.now() 
-                });
-                document.getElementById('taskInput').value = '';
-                document.getElementById('isWeekly').checked = false;
-            }
-        };
-
-        onValue(tasksRef, (snapshot) => {
-            const data = snapshot.val();
-            const listDiv = document.getElementById('taskList');
-            listDiv.innerHTML = ""; 
-            
-            for (let id in data) {
-                const task = data[id];
-                if(task.status === "pending") {
-                    const weeklyTag = task.weekly ? '<span class="weekly-label">WEEKLY</span>' : '';
-                    
-                    const card = document.createElement('div');
-                    card.className = 'task-card';
-                    card.id = id;
-                    card.innerHTML = `<span>${task.text}</span> ${weeklyTag}`;
-                    
-                    card.onmousedown = () => handleStart(id);
-                    card.onmouseup = () => handleEnd(id);
-                    card.onmouseleave = () => handleEnd(id);
-                    
-                    card.ontouchstart = () => handleStart(id);
-                    card.ontouchend = () => handleEnd(id);
-                    
-                    listDiv.appendChild(card);
+        function getCategory(text) {
+            const lower = text.toLowerCase();
+            for (const cat of CATEGORIES) {
+                if (cat.id === 'general') continue;
+                for (const kw of cat.keywords) {
+                    if (lower.includes(kw.toLowerCase())) return cat.id;
                 }
             }
+            return 'general';
+        }
+
+        // ── Name / greeting ───────────────────────────────────────────────────
+        window.saveName = function() {
+            const name = document.getElementById('nameInput').value.trim();
+            if (name) {
+                localStorage.setItem('familyMemberName', name);
+                document.getElementById('nameOverlay').style.display = 'none';
+                updateGreeting();
+            }
+        };
+
+        function updateGreeting() {
+            const name = localStorage.getItem('familyMemberName');
+            if (!name) { document.getElementById('nameOverlay').style.display = 'flex'; return; }
+            const hour = new Date().getHours();
+            let wish = (hour >= 5 && hour < 12) ? "בוקר טוב"
+                     : (hour >= 12 && hour < 17) ? "צוהריים טובים"
+                     : (hour >= 17 && hour < 21) ? "ערב טוב"
+                     : "לילה טוב";
+            document.getElementById('greeting').innerText = `${wish}, ${name}`;
+        }
+        updateGreeting();
+
+        // ── Add / clear ───────────────────────────────────────────────────────
+        window.addItem = function() {
+            const input = document.getElementById('itemInput');
+            const text = input.value.trim();
+            const author = localStorage.getItem('familyMemberName') || "מישהו";
+            if (!text) return;
+            const category = getCategory(text);
+            push(listRef, { text, completed: false, timestamp: Date.now(), author, category });
+            input.value = '';
+        };
+
+        // Allow pressing Enter to add
+        document.getElementById('itemInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter') window.addItem();
         });
+
+        window.clearList = function() { set(listRef, null); };
+
+        // ── Render ────────────────────────────────────────────────────────────
+        onValue(listRef, (snapshot) => {
+            const data = snapshot.val() || {};
+            const listDiv = document.getElementById('itemList');
+            listDiv.innerHTML = "";
+
+            let items = Object.keys(data).map(id => ({ id, ...data[id] }));
+
+            // Back-fill category for older items that were added before this update
+            items.forEach(item => {
+                if (!item.category) item.category = getCategory(item.text);
+            });
+
+            // Sort: by category order, then within category newest-first,
+            // completed items always go to the bottom.
+            const catOrder = Object.fromEntries(CATEGORIES.map(c => [c.id, c.order]));
+
+            items.sort((a, b) => {
+                if (a.completed !== b.completed) return a.completed - b.completed;
+                const co = (catOrder[a.category] ?? 99) - (catOrder[b.category] ?? 99);
+                if (co !== 0) return co;
+                return b.timestamp - a.timestamp; // newest first within category
+            });
+
+            items.forEach(item => {
+                const container = document.createElement('div');
+                container.className = `item-container ${item.completed ? 'completed' : ''}`;
+                container.innerHTML = `
+                    <div class="item-card">
+                        <div class="card-face card-front"><span>- ${item.text}</span></div>
+                        <div class="card-face card-back">${item.author || 'מישהו'}</div>
+                    </div>`;
+
+                const card = container.querySelector('.item-card');
+
+                // ── Hold-to-reveal + tap-to-check ─────────────────────────────
+                // We use touch events (not pointer events) because the browser fires
+                // pointercancel the moment it decides to scroll, which kills the timer.
+                // Touch events are NOT cancelled by scrolling, so the hold timer
+                // survives a scroll. We still keep track of movement so a scroll
+                // never accidentally triggers a tap/check.
+                let pressTimer = null;
+                let startX = 0, startY = 0;
+                let isHoldTriggered = false;
+                let moved = false; // true if finger moved enough to be a scroll
+
+                card.addEventListener('contextmenu', e => e.preventDefault());
+
+                card.addEventListener('touchstart', e => {
+                    // If the page scrolled recently, ignore this touch for hold purposes.
+                    // The user is likely still flicking and we don't want an accidental hold.
+                    if (scrolledRecently) return;
+
+                    const t = e.touches[0];
+                    startX = t.clientX;
+                    startY = t.clientY;
+                    isHoldTriggered = false;
+                    moved = false;
+
+                    pressTimer = setTimeout(() => {
+                        // Only flip if the finger hasn't scrolled away
+                        if (!moved) {
+                            isHoldTriggered = true;
+                            card.classList.add('is-flipped');
+                            if (navigator.vibrate) navigator.vibrate(30);
+                            setTimeout(() => card.classList.remove('is-flipped'), 2500);
+                        }
+                    }, 600);
+                }, { passive: true });
+
+                card.addEventListener('touchmove', e => {
+                    const t = e.touches[0];
+                    const dx = Math.abs(t.clientX - startX);
+                    const dy = Math.abs(t.clientY - startY);
+                    // 8px threshold — any real scroll will exceed this easily
+                    if (dx > 8 || dy > 8) {
+                        moved = true;
+                        clearTimeout(pressTimer);
+                    }
+                }, { passive: true });
+
+                card.addEventListener('touchend', e => {
+                    clearTimeout(pressTimer);
+                    // Only toggle if: not a scroll, finger barely moved, hold didn't fire
+                    if (!scrolledRecently && !moved && !isHoldTriggered) {
+                        update(ref(db, 'groceries/' + item.id), { completed: !item.completed });
+                    }
+                }, { passive: true });
+
+                card.addEventListener('touchcancel', () => {
+                    clearTimeout(pressTimer);
+                    moved = true; // treat cancel as a moved/scroll
+                }, { passive: true });
+
+                listDiv.appendChild(container);
+            });
+        });
+
+        // ── Post-scroll cooldown ─────────────────────────────────────────────
+        // After scrolling stops, wait 350ms before allowing hold gestures.
+        // This fixes the bug where the browser stays in scroll mode and keeps
+        // cancelling touch events even after the finger is fully lifted.
+        let scrolledRecently = false;
+        let scrollCooldown = null;
+        window.addEventListener('scroll', () => {
+            scrolledRecently = true;
+            clearTimeout(scrollCooldown);
+            scrollCooldown = setTimeout(() => { scrolledRecently = false; }, 350);
+        }, { passive: true });
     </script>
 </body>
 </html>
