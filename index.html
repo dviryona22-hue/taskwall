@@ -53,10 +53,9 @@
             font-size: 18px;
             transition: transform 0.15s, opacity 0.4s, background-color 0.4s;
             cursor: pointer;
-            touch-action: pan-y; /* Allows normal scrolling without interference */
+            touch-action: pan-y;
         }
 
-        /* This ONLY triggers during the valid second-press hold */
         .task-card.pressing {
             transform: scale(0.92);
             background-color: #ffebee;
@@ -74,7 +73,20 @@
 </head>
 <body>
 
-    <h1>Ido's To Do List</h1>
+    <h1 id="greeting"></h1>
+
+    <script>
+        function updateGreeting() {
+            const hour = new Date().getHours();
+            let greeting;
+            if (hour >= 5 && hour < 12) greeting = "Good morning, Ido";
+            else if (hour >= 12 && hour < 17) greeting = "Good afternoon, Ido";
+            else if (hour >= 17 && hour < 21) greeting = "Good evening, Ido";
+            else greeting = "Good night, Ido";
+            document.getElementById('greeting').textContent = greeting;
+        }
+        updateGreeting();
+    </script>
 
     <input type="text" id="taskInput" placeholder="type task here...">
     
@@ -113,11 +125,8 @@
             const currentTime = new Date().getTime();
             const tapLength = currentTime - lastTapTime;
 
-            // Check if this tap happens quickly after the last one
             if (tapLength < 400 && tapLength > 0) {
                 const el = document.getElementById(id);
-                
-                // Only now do we apply the visual "pressing" state
                 el.classList.add('pressing');
 
                 pressTimer = setTimeout(() => {
@@ -175,12 +184,10 @@
                     card.id = id;
                     card.innerHTML = `<span>${task.text}</span> ${weeklyTag}`;
                     
-                    // Mouse Listeners
                     card.onmousedown = () => handleStart(id);
                     card.onmouseup = () => handleEnd(id);
                     card.onmouseleave = () => handleEnd(id);
                     
-                    // Touch Listeners
                     card.ontouchstart = () => handleStart(id);
                     card.ontouchend = () => handleEnd(id);
                     
